@@ -16,13 +16,15 @@ public class IndexModel : PageModel
     }
 
     public IList<Book> Book { get; set; } = default!;
-
+    public BookData BookD { get; set; }
+    public int BookID { get; set; }
+    public int CategoryID { get; set; }
     [BindProperty(SupportsGet = true)]
     public int? SelectedAuthorId { get; set; }
 
     public SelectList AuthorsList { get; set; } = default!;
 
-    public async Task OnGetAsync()
+    public async Task OnGetAsync(int? id, int? categoryID)
     {
         var authors = await _context.Authors.ToListAsync();
 
@@ -34,16 +36,34 @@ public class IndexModel : PageModel
 
         AuthorsList = new SelectList(authorsWithFullName, "ID", "FullName", SelectedAuthorId);
 
+        BookD = new BookData();
+
         var booksQuery = _context.Book
             .Include(b => b.Publisher)
             .Include(b => b.Author)
-            .AsQueryable();
+            .Include(b => b.BookCategories)
+            .ThenInclude(b => b.Category)
+            .AsNoTracking()
+            .OrderBy(b => b.Title);
 
         if (SelectedAuthorId.HasValue)
         {
-            booksQuery = booksQuery.Where(b => b.AuthorID == SelectedAuthorId.Value);
+            booksQuery = booksQuery.Where(b => b.AuthorID == SelectedAuthorId.Value)
+                .OrderBy(b => b.Title);
         }
 
-        Book = await booksQuery.ToListAsync();
+        BookD.Books = await booksQuery.ToListAsync();
+
+        Book = BookD.Books.ToList();
+
+        if (id != null)
+        {
+            BookID = id.Value;
+
+            Book book = BookD.Books
+                .Where(i => i.ID == id.Value).Single();
+
+            BookD.Categories = book.BookCategories.Select(s => s.Category);
+        }
     }
 }

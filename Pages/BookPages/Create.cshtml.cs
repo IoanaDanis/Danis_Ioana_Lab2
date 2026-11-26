@@ -1,12 +1,11 @@
-using Microsoft.AspNetCore.Mvc.Rendering;
+
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Danis_Ioana_Lab2.Models;
 
 namespace Danis_Ioana_Lab2.Pages.BookPages;
 
-public class CreateModel : PageModel
+public class CreateModel : BookCategoriesPageModel
 {
     private readonly Danis_Ioana_Lab2Context _context;
 
@@ -17,8 +16,8 @@ public class CreateModel : PageModel
 
     private void PopulateDropdowns()
     {
-        ViewData["PublisherID"] = new SelectList(_context.Set<Publisher>(), "ID",
-            "PublisherName");
+        ViewData["PublisherID"] = new SelectList(
+            _context.Publisher, "ID", "PublisherName");
 
         var authorsList = _context.Authors
             .Select(a => new
@@ -28,24 +27,45 @@ public class CreateModel : PageModel
             })
             .ToList();
 
-        ViewData["AuthorID"] = new SelectList(authorsList, "ID", "FullName");
-    }
-
-    public IActionResult OnGet()
-    {
-        PopulateDropdowns();
-        return Page();
+        ViewData["AuthorID"] = new SelectList(
+            authorsList, "ID", "FullName");
     }
 
     [BindProperty]
     public Book Book { get; set; } = default!;
 
-    
-    public async Task<IActionResult> OnPostAsync()
+    public IActionResult OnGet()
     {
+        Book = new Book
+        {
+            BookCategories = new List<BookCategory>()
+        };
+
+        PopulateDropdowns();
+        PopulateAssignedCategoryData(_context, Book);
+
+        return Page();
+    }
+
+    public async Task<IActionResult> OnPostAsync(string[] selectedCategories)
+    {
+        Book.BookCategories = new List<BookCategory>();
+
+        if (selectedCategories != null)
+        {
+            foreach (var cat in selectedCategories)
+            {
+                Book.BookCategories.Add(new BookCategory
+                {
+                    CategoryID = int.Parse(cat)
+                });
+            }
+        }
+
         if (!ModelState.IsValid)
         {
             PopulateDropdowns();
+            PopulateAssignedCategoryData(_context, Book);
             return Page();
         }
 

@@ -35,7 +35,7 @@
                 @Html.DisplayFor(model => item.LastName)
             </td>
             <td>
-                @Html.DisplayFor(model => item.Books)
+                    @(item.Books?.Count ?? 0)
             </td>
             <td>
                 <a asp-page="./Edit" asp-route-id="@item.ID">Edit</a> |
